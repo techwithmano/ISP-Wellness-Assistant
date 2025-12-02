@@ -34,15 +34,12 @@ const SYMPTOM_SYSTEM_MAP: Record<string, BodySystem[]> = {
   'tremor': ['endocrine/metabolic', 'neurological'],
   
   // Cardiac
-  'heart palpitations': ['cardiac', 'autonomic'],
   'chest pain': ['cardiac'],
-  'shortness of breath': ['cardiac', 'respiratory'],
   'difficulty breathing': ['cardiac', 'respiratory'],
   
   // Neurological
   'numbness': ['neurological'],
   'tingling': ['neurological'],
-  'weakness': ['neurological'],
   'vision problems': ['neurological'],
   'blurred vision': ['neurological'],
   'double vision': ['neurological'],
@@ -65,7 +62,6 @@ const SYMPTOM_SYSTEM_MAP: Record<string, BodySystem[]> = {
   'abdominal pain': ['gastrointestinal'],
   
   // Hematologic
-  'weakness': ['hematologic', 'neurological'],
   'swollen glands': ['hematologic', 'respiratory'],
   
   // Autoimmune
@@ -77,6 +73,9 @@ const SYMPTOM_SYSTEM_MAP: Record<string, BodySystem[]> = {
   // Respiratory
   'cough': ['respiratory'],
   'shortness of breath': ['respiratory', 'cardiac'],
+  
+  // Multi-system symptoms (merged to avoid duplicates)
+  'weakness': ['neurological', 'hematologic'],
 };
 
 /**

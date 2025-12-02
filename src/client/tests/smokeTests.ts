@@ -71,9 +71,9 @@ export async function runSmokeTests(): Promise<TestResult[]> {
     const testAnswers: string[] = ['I have been losing weight for 3 weeks'];
     const timeCourse = inferTimeCourse(testSymptoms, testAnswers);
     
-    const hasInterpretation = timeCourse.interpretation && 
-                              timeCourse.interpretation.length > 0 &&
-                              !timeCourse.interpretation.toLowerCase().includes('not available');
+    const hasInterpretation = !!(timeCourse.interpretation && 
+                                  timeCourse.interpretation.length > 0 &&
+                                  !timeCourse.interpretation.toLowerCase().includes('not available'));
     
     results.push({
       name: 'Time-course inference never returns "not available"',

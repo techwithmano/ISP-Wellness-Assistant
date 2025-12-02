@@ -137,7 +137,7 @@ export function calculateDiseaseScores(
   const diseaseScores = new Map<string, number>();
   const priorityConditions = applyConditionFiltering(symptoms);
   
-  const diseaseList = diseasesData as DiseaseData[];
+  const diseaseList = (diseasesData as unknown as DiseaseData[]);
   
   diseaseList.forEach(disease => {
     let rawScore = 0;
@@ -277,7 +277,7 @@ export function scoreSymptoms(
     const clamped = clampDisplayScore(score);
     if (!clamped) return; // Skip 0% conditions
     
-    const disease = (diseasesData as DiseaseData[]).find(d => d.name === diseaseName);
+    const disease = (diseasesData as unknown as DiseaseData[]).find(d => d.name === diseaseName);
     if (!disease) return;
     
     // Generate simple explanation

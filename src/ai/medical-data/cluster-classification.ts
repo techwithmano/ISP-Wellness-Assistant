@@ -36,7 +36,6 @@ const SYMPTOM_CLUSTER_MAP: Record<string, ClusterType[]> = {
   'vision problems': ['neurologic'],
   'blurred vision': ['neurologic'],
   'double vision': ['neurologic'],
-  'weakness': ['neurologic'],
   'memory problems': ['neurologic'],
   'confusion': ['neurologic'],
   'seizures': ['neurologic'],
@@ -62,7 +61,7 @@ const SYMPTOM_CLUSTER_MAP: Record<string, ClusterType[]> = {
   'dizziness': ['autonomic dysfunction', 'neurologic', 'endocrine'],
   'heart palpitations': ['autonomic dysfunction', 'endocrine'],
   
-  // Metabolic indicators
+  // Metabolic indicators (merged with neurologic for weakness)
   'fatigue': ['metabolic/nutritional', 'endocrine', 'autoimmune'],
   'weakness': ['metabolic/nutritional', 'neurologic', 'endocrine'],
 };
