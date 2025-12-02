@@ -65,15 +65,14 @@ const SYMPTOM_SYSTEM_MAP: Record<string, BodySystem[]> = {
   'abdominal pain': ['gastrointestinal'],
   
   // Hematologic
-  'fatigue': ['hematologic', 'endocrine/metabolic', 'autoimmune'],
   'weakness': ['hematologic', 'neurological'],
-  'swollen glands': ['hematologic', 'infectious'],
+  'swollen glands': ['hematologic', 'respiratory'],
   
   // Autoimmune
   'joint pain': ['autoimmune'],
   'rash': ['autoimmune'],
-  'fatigue': ['autoimmune', 'hematologic'],
-  'fever': ['autoimmune', 'infectious'],
+  'fatigue': ['autoimmune', 'hematologic', 'endocrine/metabolic'],
+  'fever': ['autoimmune', 'hematologic'],
   
   // Respiratory
   'cough': ['respiratory'],

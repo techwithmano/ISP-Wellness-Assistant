@@ -90,7 +90,7 @@ export function applyTimeCourseLogic(
     }
     
     // Pattern-based adjustments
-    if (pattern === 'relapsing' || pattern === 'waxing' || pattern === 'waning') {
+    if (pattern === 'relapsing') {
       if (autoimmuneDiseases.some(d => diseaseName.includes(d))) {
         multiplier *= 1.4;
         reasons.push('relapsing pattern suggests autoimmune condition');

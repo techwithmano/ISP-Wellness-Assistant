@@ -51,13 +51,10 @@ const SYMPTOM_CLUSTER_MAP: Record<string, ClusterType[]> = {
   
   // Infectious indicators
   'fever': ['infectious', 'autoimmune', 'malignancy/hematologic'],
-  'night sweats': ['infectious', 'malignancy/hematologic'],
-  'swollen glands': ['infectious', 'malignancy/hematologic'],
   'cough': ['infectious'],
   
-  // Malignancy indicators
+  // Malignancy/infectious indicators (merged to avoid duplicates)
   'night sweats': ['malignancy/hematologic', 'infectious'],
-  'weight loss': ['malignancy/hematologic', 'endocrine'],
   'swollen glands': ['malignancy/hematologic', 'infectious'],
   
   // Autonomic dysfunction indicators
