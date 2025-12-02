@@ -1,0 +1,510 @@
+'use client';
+
+import { SymptomAnalysisOutput } from "@/ai/flows/symptom-analysis";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { CheckCircle, AlertTriangle, Info, Download, Home } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { useRouter } from 'next/navigation';
+
+interface ConditionDisplayProps {
+  conditions: SymptomAnalysisOutput;
+  name: string;
+  age: string;
+  gender: string;
+  email: string;
+  symptoms: string;
+  medicalHistory: string;
+  questions: string[];
+  answers: string[];
+}
+
+export const ConditionDisplay: React.FC<ConditionDisplayProps> = ({
+  conditions,
+  name,
+  age,
+  gender,
+  email,
+  symptoms,
+  medicalHistory,
+  questions,
+  answers,
+}) => {
+
+  const router = useRouter();
+
+  const handleGoBack = () => {
+    router.push('/');
+  };
+
+  const getIcon = (likelihood: number) => {
+    if (likelihood > 0.75) {
+      return <CheckCircle className="w-4 h-4 text-green-500 mr-1" />;
+    } else if (likelihood > 0.5) {
+      return <AlertTriangle className="w-4 h-4 text-yellow-500 mr-1" />;
+    } else {
+      return <Info className="w-4 h-4 text-gray-500 mr-1" />;
+    }
+  };
+
+  const generatePDF = async () => {
+    // Add debugging logs at start of PDF generation
+    console.log('Starting PDF generation with Q&A data:', {
+      questionsLength: questions?.length,
+      answersLength: answers?.length,
+      questions,
+      answers
+    });
+
+    const doc = new jsPDF("portrait", "pt", "a4");
+    const width = doc.internal.pageSize.getWidth();
+    const height = doc.internal.pageSize.getHeight();
+    const margin = 50; // Increased margin
+    const bleed = 10; // Added bleed area
+    const contentWidth = width - (margin * 2);
+    let cursorY = margin;
+
+    // Typography and color definitions
+    const fonts = {
+      heading: 'helvetica',
+      body: 'helvetica',
+      monospace: 'courier'
+    };
+
+    const weights = {
+      regular: 'normal',
+      medium: 'bold',
+      bold: 'bold'
+    } as const;
+
+    const colors = {
+      primary: '#1a365d',    // Darker blue for headers
+      secondary: '#2d3748',  // Dark gray for body text
+      accent: '#3182ce',     // Bright blue for links
+      warning: '#c53030',    // Red for disclaimer
+      background: '#f7fafc', // Lighter background
+      border: '#e2e8f0'      // Border color
+    };
+
+    const spacing = {
+      section: 35,    // Reduced from 40
+      paragraph: 15,  // Reduced from 20
+      line: 16,       // Reduced from 18
+      element: 8      // Reduced from 10
+    };
+
+    // Font sizes (adjusted for medical report)
+    const fontSizes = {
+      coverTitle: 37,     // was 35
+      coverSubtitle: 21,  // was 19
+      coverInfo: 13,      // was 11
+      sectionTitle: 21,   // was 19
+      bodyText: 11,       // was 9
+      footer: 9,          // was 6 - increased for better readability
+    };
+
+    // --- Header / Footer setup ---
+    const footer = (page: number, totalPages: number) => {
+      // Add separator line
+      doc.setDrawColor(colors.border);
+      doc.setLineWidth(0.5);
+      doc.line(margin, height - 35, width - margin, height - 35);
+      
+      doc.setFontSize(fontSizes.footer);
+      doc.setTextColor(colors.secondary);
+      const footerText = `Page ${page} of ${totalPages} | ISP Wellness Assistant Report | Generated: ${new Date().toLocaleString()}`;
+      doc.text(footerText, width / 2, height - 20, { align: 'center' });
+    };
+
+    // Cover Page ---
+    doc.setFillColor(colors.background);
+    doc.rect(0, 0, width, height, 'F');
+    
+    // Add logo or icon
+    doc.setFont(fonts.heading, weights.bold);
+    doc.setFontSize(fontSizes.coverTitle);
+    doc.setTextColor(colors.primary);
+    doc.text('ISP Wellness Assistant', width/2, height/2 - 60, { align: 'center' });
+    
+    doc.setFontSize(fontSizes.coverSubtitle);
+    doc.text('Comprehensive Medical Analysis Report', width/2, height/2 - 20, { align: 'center' });
+    
+    doc.setFontSize(fontSizes.coverInfo);
+    doc.text(`Patient: ${name}`, width/2, height/2 + 20, { align: 'center' });
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, width/2, height/2 + 50, { align: 'center' });
+    
+    // Add a decorative line
+    doc.setDrawColor(colors.accent);
+    doc.setLineWidth(2);
+    doc.line(margin, height/2 + 80, width - margin, height/2 + 80);
+    
+    doc.addPage();
+
+    // Table of Contents ---
+    doc.setFont(fonts.heading, weights.bold);
+    doc.setFontSize(fontSizes.sectionTitle);
+    doc.setTextColor(colors.primary);
+    doc.text('Table of Contents', margin, cursorY);
+    cursorY += spacing.section;
+    
+    const toc = [
+      { title: 'Patient Information', page: 3 },
+      { title: 'Symptoms & History', page: 3 },
+      { title: 'Q&A Session', page: 4 },
+      { title: 'Analysis Results', page: 5 },
+      { title: 'Recommendations', page: 6 },
+      { title: 'Disclaimer', page: 7 },
+    ];
+    
+    doc.setFont(fonts.body, weights.regular);
+    doc.setFontSize(fontSizes.bodyText);
+    doc.setTextColor(colors.secondary);
+    toc.forEach((item, idx) => {
+      const pageNumWidth = 30;
+      const titleWidth = width - margin * 2 - pageNumWidth;
+      
+      // Title
+      doc.text(`${idx + 1}. ${item.title}`, margin, cursorY);
+      
+      // Page number
+      doc.text(item.page.toString(), width - margin - pageNumWidth, cursorY);
+      
+      // Dots
+      const dots = '.'.repeat(Math.floor((titleWidth - doc.getTextWidth(item.title)) / 5));
+      doc.text(dots, margin + doc.getTextWidth(`${idx + 1}. ${item.title}`), cursorY);
+      
+      cursorY += spacing.line;
+    });
+    doc.addPage();
+    cursorY = margin;
+
+    // Patient Information ---
+    doc.setFont(fonts.heading, weights.bold);
+    doc.setFontSize(fontSizes.sectionTitle);
+    doc.setTextColor(colors.primary);
+    doc.text('1. Patient Information', margin, cursorY);
+    cursorY += spacing.section;
+    
+    const info = [
+      ['Name', name],
+      ['Age', age],
+      ['Gender', gender],
+      ['Email', email],
+      ['Report Date', new Date().toLocaleDateString()],
+    ];
+    
+    autoTable(doc, {
+      startY: cursorY,
+      margin: { left: margin, right: margin },
+      theme: 'grid',
+      body: info,
+      styles: { 
+        cellPadding: 8,
+        fontSize: fontSizes.bodyText,
+        textColor: colors.secondary,
+        lineColor: colors.border,
+        lineWidth: 0.5,
+        font: fonts.body,
+        fontStyle: weights.regular
+      },
+      columnStyles: { 
+        0: { fontStyle: weights.bold, cellWidth: 150, textColor: colors.primary }, 
+        1: { cellWidth: width - margin*2 - 150 } 
+      }
+    });
+    cursorY = (doc as any).lastAutoTable.finalY + spacing.section;
+
+    // Symptoms & Medical History ---
+    doc.setFont(fonts.heading, weights.bold);
+    doc.setFontSize(fontSizes.sectionTitle);
+    doc.setTextColor(colors.primary);
+    doc.text('2. Symptoms & History', margin, cursorY);
+    cursorY += spacing.section;
+    
+    autoTable(doc, {
+      startY: cursorY,
+      margin: { left: margin, right: margin },
+      theme: 'grid',
+      body: [
+        ['Reported Symptoms', symptoms],
+        ['Medical History', medicalHistory || 'None provided'],
+      ],
+      styles: { 
+        cellPadding: 8,
+        fontSize: fontSizes.bodyText,
+        textColor: colors.secondary,
+        lineColor: colors.border,
+        lineWidth: 0.5,
+        font: fonts.body,
+        fontStyle: weights.regular
+      },
+      columnStyles: { 
+        0: { fontStyle: weights.bold, cellWidth: 150, textColor: colors.primary }, 
+        1: { cellWidth: width - margin*2 - 150 } 
+      }
+    });
+    cursorY = (doc as any).lastAutoTable.finalY + spacing.section;
+
+    // Q&A Session ---
+    doc.addPage();
+    cursorY = margin;
+    doc.setFont(fonts.heading, weights.bold);
+    doc.setFontSize(fontSizes.sectionTitle);
+    doc.setTextColor(colors.primary);
+    doc.text('3. Q&A Session', margin, cursorY);
+    cursorY += spacing.section;
+
+    if (Array.isArray(questions) && Array.isArray(answers) && questions.length > 0 && answers.length > 0) {
+      questions.forEach((question, index) => {
+        const answer = answers[index] || 'No answer provided';
+        
+        // Question box
+        doc.setFillColor(colors.background);
+        doc.roundedRect(margin, cursorY - 8, width - margin * 2, 35, 3, 3, 'F');
+        
+        // Question
+        doc.setTextColor(colors.primary);
+        doc.setFont(fonts.body, weights.bold);
+        doc.setFontSize(fontSizes.bodyText);
+        const questionLines = doc.splitTextToSize(`Q${index + 1}: ${question}`, width - margin * 2 - 20);
+        doc.text(questionLines, margin + 10, cursorY + 5);
+        cursorY += (questionLines.length * spacing.line) + spacing.paragraph;
+        
+        // Answer
+        doc.setTextColor(colors.secondary);
+        doc.setFont(fonts.body, weights.regular);
+        const answerLines = doc.splitTextToSize(answer, width - margin * 2 - 40);
+        doc.text(answerLines, margin + 30, cursorY);
+        cursorY += (answerLines.length * spacing.line) + spacing.paragraph;
+        
+        if (cursorY > height - margin) {
+          doc.addPage();
+          cursorY = margin;
+        }
+      });
+    } else {
+      doc.setTextColor(colors.secondary);
+      doc.text('No Q&A session data available', margin, cursorY);
+      cursorY += spacing.section;
+    }
+
+    // Analysis Results ---
+    doc.addPage();
+    cursorY = margin;
+    doc.setFont(fonts.heading, weights.bold);
+    doc.setFontSize(fontSizes.sectionTitle);
+    doc.setTextColor(colors.primary);
+    doc.text('4. Analysis Results', margin, cursorY);
+    cursorY += spacing.section;
+
+    conditions.forEach((condition, index) => {
+      const descriptionLines = doc.splitTextToSize(condition.description || '', width - margin * 2 - 40);
+      const boxHeight = Math.max(35, descriptionLines.length * spacing.line + 15);
+      
+      // Condition box
+      doc.setFillColor(colors.background);
+      doc.roundedRect(margin, cursorY - 8, width - margin * 2, boxHeight, 3, 3, 'F');
+      
+      // Condition name
+      doc.setTextColor(colors.primary);
+      doc.setFont(fonts.body, weights.bold);
+      doc.setFontSize(fontSizes.bodyText);
+      doc.text(`Condition ${index + 1}: ${condition.condition}`, margin + 10, cursorY + 5);
+      cursorY += spacing.line;
+
+      // Likelihood
+      doc.setTextColor(colors.secondary);
+      doc.setFont(fonts.body, weights.regular);
+      const likelihoodText = `Likelihood: ${(condition.likelihood * 100).toFixed(2)}%`;
+      doc.text(likelihoodText, margin + 30, cursorY);
+      cursorY += spacing.line;
+
+      // Description
+      if (condition.description) {
+        doc.text(descriptionLines, margin + 30, cursorY);
+        cursorY += (descriptionLines.length * spacing.line) + spacing.paragraph;
+      }
+
+      if (cursorY > height - margin) {
+        doc.addPage();
+        cursorY = margin;
+      }
+    });
+
+    // Recommendations ---
+    doc.addPage();
+    cursorY = margin;
+    doc.setFont(fonts.heading, weights.bold);
+    doc.setFontSize(fontSizes.sectionTitle);
+    doc.setTextColor(colors.primary);
+    doc.text('5. Recommendations', margin, cursorY);
+    cursorY += spacing.section;
+    
+    const recommendations = [
+      'Consult with a healthcare provider for professional medical advice',
+      'Keep track of any changes in symptoms',
+      'Follow up with recommended specialists if needed',
+      'Maintain a record of medications and treatments',
+      'Schedule regular check-ups as advised'
+    ];
+    
+    doc.setFont(fonts.body, weights.regular);
+    doc.setFontSize(fontSizes.bodyText);
+    doc.setTextColor(colors.secondary);
+    recommendations.forEach((rec, index) => {
+      doc.text(`• ${rec}`, margin + 20, cursorY);
+      cursorY += spacing.line;
+    });
+
+    // Disclaimer ---
+    doc.addPage();
+    cursorY = margin;
+    doc.setFont(fonts.heading, weights.bold);
+    doc.setFontSize(fontSizes.sectionTitle);
+    doc.setTextColor(colors.warning);
+    doc.text('6. Disclaimer', margin, cursorY);
+    cursorY += spacing.section;
+    
+    doc.setFont(fonts.body, weights.regular);
+    doc.setFontSize(fontSizes.bodyText);
+    doc.setTextColor(colors.secondary);
+    const disclaimer = [
+      'This report is generated by ISP Wellness Assistant and is not a substitute for professional medical advice.',
+      'Always consult a qualified healthcare provider for proper diagnosis and treatment.',
+      'The information provided in this report is based on the symptoms and information provided by the patient.',
+      'ISP Wellness Assistant is not responsible for any decisions made based on this report.'
+    ];
+    
+    disclaimer.forEach((text, index) => {
+      const lines = doc.splitTextToSize(text, width - margin * 2);
+      doc.text(lines, margin, cursorY);
+      cursorY += (lines.length * spacing.line) + spacing.paragraph;
+    });
+
+    // Add page numbers to all pages
+    const pages = doc.getNumberOfPages();
+    for (let i = 1; i <= pages; i++) {
+      doc.setPage(i);
+      footer(i, pages);
+    }
+
+    // Save the PDF
+    const pdfOutput = doc.output('datauristring');
+    const pdfData = pdfOutput.split(',')[1]; // Get the base64 data
+
+    try {
+      // Send PDF to email API
+      const response = await fetch('/api/send-report', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pdfData,
+          patientName: name
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        console.error('Server error:', result);
+        throw new Error(result.message || 'Failed to send report');
+      }
+      
+      if (result.success) {
+        // Save PDF locally as well
+        doc.save(`ISP-Wellness-Assistant-Report-${name}-${new Date().toISOString().split('T')[0]}.pdf`);
+      } else {
+        console.error('Failed to send report:', result.message, result.error, result.details);
+        throw new Error(result.message || 'Failed to send report');
+      }
+    } catch (error) {
+      console.error('Error sending report:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        });
+      }
+      // Save PDF locally if there's an error
+      doc.save(`ISP-Wellness-Assistant-Report-${name}-${new Date().toISOString().split('T')[0]}.pdf`);
+    }
+  };
+
+  return (
+    <div className="w-4/5 mx-auto">
+      <div className="flex justify-between items-center mb-4">
+	  <Button
+          onClick={handleGoBack}
+          className="flex items-center gap-2"
+        >
+          <Home className="w-4 h-4" />
+		  Start New Analysis
+        </Button>
+        <h2 className="text-xl font-semibold text-primary">Potential Conditions</h2>
+        {conditions.length > 0 && (
+          <Button
+            onClick={generatePDF}
+            className="flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" />
+            Download Report
+          </Button>
+        )}
+      </div>
+      {conditions.length > 0 ? (
+        <>
+          <div className="grid gap-6">
+            {conditions.map((condition, index) => (
+              <Card key={index} className="shadow-md rounded-2xl">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    {condition.condition}
+                  </CardTitle>
+                  <CardDescription>
+                    Likelihood:
+                    <Badge variant="secondary" className="ml-1">
+                      {(condition.likelihood * 100).toFixed(2)}%
+                    </Badge>
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center mb-2">
+                    {getIcon(condition.likelihood)}
+                    <span className="ml-1">
+                      {condition.description || "No description available."}
+                    </span>
+                  </div>
+                  <Button
+                    variant="link"
+                    className="text-sm p-0 mt-2"
+                    onClick={() =>
+                      window.open(
+                        `https://www.webmd.com/search/search_results/default.aspx?query=${encodeURIComponent(condition.condition)}`,
+                        "_blank"
+                      )
+                    }
+                  >
+                    Learn more on WebMD →
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
+      ) : (
+        <p>No potential conditions found.</p>
+      )}
+    </div>
+  );
+};
