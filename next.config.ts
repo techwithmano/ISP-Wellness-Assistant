@@ -4,8 +4,7 @@ import type { NextConfig } from 'next';
 const enableComingSoonRedirect = false;
 
 const baseConfig: NextConfig = {
-  // Server actions require server mode (not static export)
-  output: 'standalone',
+  // Server actions work with Vercel's serverless functions (no output option needed)
   typescript: {
     ignoreBuildErrors: true,
   },
